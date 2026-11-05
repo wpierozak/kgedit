@@ -4,11 +4,14 @@ PROJECT_BRIEF          = "Offline RDF versioning and Neo4j artifact generation"
 OUTPUT_DIRECTORY       = build/doxygen
 INPUT                  = include \
                          src \
+                         instances/include \
+                         instances/src \
                          archive/legacy_database/include \
                          archive/legacy_database/src
 FILE_PATTERNS          = *.hxx *.cxx
 RECURSIVE              = YES
 INCLUDE_PATH           = include \
+                         instances/include \
                          archive/legacy_database/include
 EXCLUDE_SYMBOLS        = _xmlNode
 EXTRACT_ALL            = NO

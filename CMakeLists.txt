@@ -53,16 +53,27 @@ target_link_libraries(entity_rdf_tests PRIVATE entity_rdf_core GTest::gtest_main
 include(GoogleTest)
 gtest_discover_tests(entity_rdf_tests)
 
+add_library(entity_rdf_instances
+  instances/src/FeeModule.cxx
+  instances/src/FeeInstanceBuilder.cxx
+  instances/src/FeeConfigXml.cxx
+)
+target_include_directories(entity_rdf_instances PUBLIC instances/include)
+target_link_libraries(entity_rdf_instances PUBLIC entity_rdf_core)
 add_library(entity_rdf_cli src/CommandLine.cxx)
 target_include_directories(entity_rdf_cli PUBLIC include)
-target_link_libraries(entity_rdf_cli PRIVATE entity_rdf_core CLI11::CLI11)
+target_link_libraries(entity_rdf_cli PRIVATE entity_rdf_core entity_rdf_instances CLI11::CLI11)
 target_compile_options(entity_rdf_cli PRIVATE -Wall -Wextra -Wpedantic)
 add_executable(kgedit src/main.cxx)
 target_link_libraries(kgedit PRIVATE entity_rdf_cli)
 
-add_executable(entity_rdf_cli_tests tests/CoreCommandLineTest.cxx)
+add_executable(entity_rdf_cli_tests tests/CommandLineTest.cxx)
 target_link_libraries(entity_rdf_cli_tests PRIVATE entity_rdf_cli GTest::gtest_main)
 gtest_discover_tests(entity_rdf_cli_tests)
+
+add_executable(entity_rdf_instance_tests instances/tests/FeeModuleTest.cxx)
+target_link_libraries(entity_rdf_instance_tests PRIVATE entity_rdf_instances GTest::gtest_main)
+gtest_discover_tests(entity_rdf_instance_tests)
 
 include(GNUInstallDirs)
 install(TARGETS kgedit RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

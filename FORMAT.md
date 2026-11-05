@@ -133,3 +133,18 @@ Existing IRIs, UUIDs and record IDs are preserved. New manually authored record
 IDs must be nonempty and unique within their node or relationship namespace.
 Canonical IRIs must be unambiguous across both namespaces. Dataset-specific
 provenance and migration utilities belong in the dataset repository.
+
+## Optional FEE instance extension
+
+The separate `entity_rdf_instances` library retains UUID5 with the OID namespace
+`6ba7b812-9dad-11d1-80b4-00c04fd430c8` over
+`detector.upper() + '.' + board_name + '.' + parameter_name`. Only ASCII detector
+case is normalized. Board and parameter names are kept exact. Instance IRIs append
+percent-encoded local board and parameter names to the configured prefix. Local
+extraction tries `#`, `/`, `:` in that order without percent decoding.
+
+Generated node and relationship record IDs retain the historical SHA-256 JSON
+identity formulas. Existing instance and relationship IDs are reused when the
+stored identity and topology agree. See
+[FeeInstanceBuilder](instances/src/FeeInstanceBuilder.cxx) and its unchanged UUID
+fixtures. Generation has no database dependency.

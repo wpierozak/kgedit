@@ -18,6 +18,7 @@ COPY src /source/src
 COPY include /source/include
 COPY tests /source/tests
 COPY examples /source/examples
+COPY instances /source/instances
 RUN cmake -S . -B /build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/deps/build/build/Release/generators/conan_toolchain.cmake && cmake --build /build --parallel 3
 RUN ctest --test-dir /build --output-on-failure
 

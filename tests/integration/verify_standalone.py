@@ -179,11 +179,44 @@ class ArtifactVerification:
         assert not (self.directory / 'rejected').exists()
         print('PASS source checksum rejection before artifact publication', flush=True)
 
+    def instances(self) -> None:
+        directory: Path = self.directory / 'fee'
+        directory.mkdir()
+        data: str = """@prefix g: <urn:dcs:graph:> .
+@prefix p: <urn:dcs:property:> .
+<urn:example:board:PMA0> a g:Node; g:recordId "board"; g:label "FrontEndElectronic"; p:name "PMA0" .
+<urn:example:detector:FT0> a g:Node; g:recordId "detector"; g:label "DCSDetector"; p:name "FT0" .
+<urn:example:type:PM> a g:Node; g:recordId "type"; g:label "FrontEndElectronicType"; p:name "PM" .
+<urn:example:parameter:threshold> a g:Node; g:recordId "parameter"; g:label "HardwareParameter"; p:name "threshold" .
+<urn:example:hardware> a g:Relationship; g:recordId "hardware"; g:source <urn:example:detector:FT0>; g:target <urn:example:board:PMA0>; g:relationshipType "has_hardware" .
+<urn:example:device-type> a g:Relationship; g:recordId "device-type"; g:source <urn:example:board:PMA0>; g:target <urn:example:type:PM>; g:relationshipType "is_of_device_type" .
+<urn:example:parameter-link> a g:Relationship; g:recordId "parameter-link"; g:source <urn:example:type:PM>; g:target <urn:example:parameter:threshold>; g:relationshipType "has_parameter" .
+"""
+        (directory / 'data.ttl').write_text(data)
+        change: ET.Element = ET.Element('graphChangeSet', id='fee-core')
+        ET.SubElement(change, 'rdf', file='data.ttl', sha256=hashlib.sha256(data.encode()).hexdigest())
+        self.write_xml(directory / 'change.xml', change)
+        root: ET.Element = ET.Element('graphChangeLog', format='rdf-changelog-v1')
+        ET.SubElement(root, 'include', file='change.xml', sha256=hashlib.sha256((directory / 'change.xml').read_bytes()).hexdigest())
+        self.write_xml(directory / 'root.xml', root)
+        self.cli('create-instance-config', '/test/fee/root.xml', '/test/fee/config.xml', 'urn:example:instance:')
+        self.cli('generate-instances', '/test/fee/root.xml', '/test/fee/config.xml', '/test/fee/instances', 'fee-instances')
+        generated: str = (directory / 'instances/instances.ttl').read_text()
+        assert generated.count(' a g:Node') == 1
+        assert generated.count(' a g:Relationship') == 2
+        assert '792c4aa7-0a22-58da-9d28-4310d811ccc8' in generated
+        assert '<urn:example:instance:PMA0/threshold>' in generated
+        self.cli('append', '/test/fee/root.xml', '/test/fee/instances/changelog.xml')
+        assert '5 nodes, 5 relationships' in self.cli('validate', '/test/fee/root.xml')
+        self.cli('build', '/test/fee/root.xml', '/test/fee/bundle', '--ttl-uri', 'file:///import/fee/bundle/combined.ttl')
+        print('PASS independent FEE configuration, historical UUID, instance generation and appended composition', flush=True)
+
     def run(self) -> None:
         try:
             self.start()
             self.baseline()
             self.scenarios()
+            self.instances()
         finally:
             if self.started:
                 self.command(['docker', 'rm', '-f', self.container])

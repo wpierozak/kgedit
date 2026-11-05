@@ -6,7 +6,7 @@
 #include <vector>
 namespace entity_rdf {
 /** @brief Exercises CLI parsing independently from application startup. */
-class CoreCommandLineTest : public testing::Test {
+class CommandLineTest : public testing::Test {
 protected:
   /// Per-test directory containing fixture inputs and newly generated outputs.
   std::filesystem::path directory;
@@ -72,27 +72,29 @@ protected:
     return path;
   }
 };
-TEST_F(CoreCommandLineTest, ShouldShowRootHelpWithoutReadingInputs) {
+TEST_F(CommandLineTest, ShouldShowRootHelpWithoutReadingInputs) {
   EXPECT_EQ(run({"kgedit", "--help"}), 0);
   EXPECT_NE(output.str().find("compose"), std::string::npos);
+  EXPECT_NE(output.str().find("generate-instances"), std::string::npos);
   EXPECT_TRUE(error.str().empty());
 }
-TEST_F(CoreCommandLineTest,
+TEST_F(CommandLineTest,
        ShouldShowHelpForEverySubcommandWithoutRequiredArguments) {
   for (const std::string &command :
-       {"validate", "compose", "build", "new-change", "append"}) {
+       {"validate", "compose", "build", "new-change", "append",
+        "generate-instances", "create-instance-config"}) {
     SCOPED_TRACE(command);
     EXPECT_EQ(run({"kgedit", command, "--help"}), 0);
     EXPECT_NE(output.str().find("ROOT"), std::string::npos);
     EXPECT_TRUE(error.str().empty());
   }
 }
-TEST_F(CoreCommandLineTest, ShouldSupportShortHelp) {
+TEST_F(CommandLineTest, ShouldSupportShortHelp) {
   EXPECT_EQ(run({"kgedit", "-h"}), 0);
   EXPECT_EQ(run({"kgedit", "build", "-h"}), 0);
   EXPECT_NE(output.str().find("--ttl-uri"), std::string::npos);
 }
-TEST_F(CoreCommandLineTest,
+TEST_F(CommandLineTest,
        ShouldRejectMissingRequiredArgumentsBeforeReadingInputs) {
   const std::vector<std::vector<std::string>> cases = {
       {"kgedit"},
@@ -100,35 +102,35 @@ TEST_F(CoreCommandLineTest,
       {"kgedit", "compose", "missing.xml"},
       {"kgedit", "build", "missing.xml", "output"},
       {"kgedit", "new-change", "missing.xml", "output", "id"},
-      {"kgedit", "append", "missing.xml"}};
+      {"kgedit", "append", "missing.xml"},
+      {"kgedit", "generate-instances", "missing.xml", "config", "output"},
+      {"kgedit", "create-instance-config", "missing.xml", "output"}};
   for (const std::vector<std::string> &arguments : cases) {
     SCOPED_TRACE(testing::PrintToString(arguments));
     EXPECT_NE(run(arguments), 0);
     EXPECT_FALSE(error.str().empty());
   }
 }
-TEST_F(CoreCommandLineTest,
+TEST_F(CommandLineTest,
        ShouldRejectUnknownCommandsAndOptionsBeforeReadingInputs) {
   EXPECT_NE(run({"kgedit", "unknown", "missing.xml"}), 0);
   EXPECT_FALSE(error.str().empty());
   EXPECT_NE(run({"kgedit", "validate", "missing.xml", "--unknown"}), 0);
   EXPECT_NE(error.str().find("--unknown"), std::string::npos);
 }
-TEST_F(CoreCommandLineTest,
-       ShouldRejectMultipleSubcommandsBeforeExecutingEither) {
+TEST_F(CommandLineTest, ShouldRejectMultipleSubcommandsBeforeExecutingEither) {
   EXPECT_NE(run({"kgedit", "validate", "missing.xml", "compose", "missing.xml",
                  (directory / "unexpected.ttl").string()}),
             0);
   EXPECT_FALSE(std::filesystem::exists(directory / "unexpected.ttl"));
 }
-TEST_F(CoreCommandLineTest,
-       ShouldRejectExtraArgumentsWithoutPublishingOutputs) {
+TEST_F(CommandLineTest, ShouldRejectExtraArgumentsWithoutPublishingOutputs) {
   EXPECT_NE(run({"kgedit", "compose", changelog(),
                  (directory / "unexpected.ttl").string(), "extra"}),
             0);
   EXPECT_FALSE(std::filesystem::exists(directory / "unexpected.ttl"));
 }
-TEST_F(CoreCommandLineTest, ShouldRejectMissingAndRepeatedTurtleUriValues) {
+TEST_F(CommandLineTest, ShouldRejectMissingAndRepeatedTurtleUriValues) {
   EXPECT_NE(run({"kgedit", "build", "missing.xml",
                  (directory / "bundle").string(), "--ttl-uri"}),
             0);
@@ -138,12 +140,12 @@ TEST_F(CoreCommandLineTest, ShouldRejectMissingAndRepeatedTurtleUriValues) {
       0);
   EXPECT_FALSE(std::filesystem::exists(directory / "bundle"));
 }
-TEST_F(CoreCommandLineTest, ShouldValidateCanonicalChangelogWithSpaceInPath) {
+TEST_F(CommandLineTest, ShouldValidateCanonicalChangelogWithSpaceInPath) {
   EXPECT_EQ(run({"kgedit", "validate", changelog()}), 0);
   EXPECT_EQ(output.str(), "1 changesets, 1 nodes, 0 relationships\n");
   EXPECT_TRUE(error.str().empty());
 }
-TEST_F(CoreCommandLineTest, ShouldComposeTurtleWithSpaceInOutputPath) {
+TEST_F(CommandLineTest, ShouldComposeTurtleWithSpaceInOutputPath) {
   std::filesystem::path path = directory / "combined graph.ttl";
   EXPECT_EQ(run({"kgedit", "compose", changelog(), path.string()}), 0);
   EXPECT_NE(Encoding::readFile(path.string()).find("<urn:test:node>"),
@@ -151,7 +153,7 @@ TEST_F(CoreCommandLineTest, ShouldComposeTurtleWithSpaceInOutputPath) {
   EXPECT_THROW(run({"kgedit", "compose", changelog(), path.string()}),
                std::runtime_error);
 }
-TEST_F(CoreCommandLineTest,
+TEST_F(CommandLineTest,
        ShouldAcceptTurtleUriBeforePositionalsAndPublishBundle) {
   std::filesystem::path bundle = directory / "bundle";
   EXPECT_EQ(run({"kgedit", "build", "--ttl-uri", "file:///combined.ttl",
@@ -163,7 +165,7 @@ TEST_F(CoreCommandLineTest,
                 .find("file:///combined.ttl"),
             std::string::npos);
 }
-TEST_F(CoreCommandLineTest,
+TEST_F(CommandLineTest,
        ShouldCreateAndAppendChangesetUsingExistingArgumentOrder) {
   std::string root = changelog();
   std::filesystem::path change = directory / "new change";
@@ -174,10 +176,5 @@ TEST_F(CoreCommandLineTest,
       run({"kgedit", "append", root, (change / "changelog.xml").string()}), 0);
   EXPECT_EQ(run({"kgedit", "validate", root}), 0);
   EXPECT_EQ(output.str(), "2 changesets, 2 nodes, 0 relationships\n");
-}
-TEST_F(CoreCommandLineTest, ShouldOmitDomainSpecificCommandsFromHelp) {
-  EXPECT_EQ(run({"kgedit", "--help"}), 0);
-  EXPECT_EQ(output.str().find("generate-instances"), std::string::npos);
-  EXPECT_EQ(output.str().find("create-instance-config"), std::string::npos);
 }
 } // namespace entity_rdf

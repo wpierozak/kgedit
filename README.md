@@ -4,8 +4,8 @@ Standalone C++23 tool for versioned RDF graphs. It validates checksummed XML
 changelogs, composes complete Turtle, and creates deterministic TTL/Cypher import
 bundles for Neo4j. It runs offline and does not handle database credentials.
 
-The repository contains the tool, its tests, a small generic example, and a
-generic RDF versioning CLI. Application datasets live in their own
+The repository contains the tool, its tests, a small generic example, and an
+optional FEE instance-generation library. Application datasets live in their own
 repositories; building or testing kgedit does not require dcs-agent.
 
 ## Build and run
@@ -57,6 +57,8 @@ kgedit compose ROOT.xml OUTPUT.ttl
 kgedit build ROOT.xml NEW_OUTPUT_DIR --ttl-uri URI
 kgedit new-change ROOT.xml NEW_DIRECTORY CHANGESET_ID INPUT.ttl
 kgedit append ROOT.xml NEW_DIRECTORY/changelog.xml
+kgedit create-instance-config ROOT.xml OUTPUT.xml IRI_PREFIX
+kgedit generate-instances CORE_ROOT.xml FEE.xml NEW_DIRECTORY CHANGESET_ID
 ```
 
 Canonical IRIs identify records and relationship endpoints. Mandatory `g:recordId`
@@ -99,7 +101,7 @@ doxygen Doxyfile
 Docker builds run the unchanged C++ unit tests and CLI smoke tests. Integration
 verification uses only bundled fixtures and an owned disposable Neo4j container:
 canonical identities, manifests, native types, arrays, parallel edges, self-loops,
-populated-target refusal, failed import/projection.
+populated-target refusal, failed import/projection, and FEE instance generation.
 No external dataset, Git history, or existing database is required.
 
 Doxygen writes HTML/XML to `build/doxygen/`, includes private helpers and archived
@@ -107,6 +109,3 @@ APIs, and treats documentation warnings as errors. The source namespace and
 internal library names remain `entity_rdf` to preserve the tested API and RDF
 vocabulary. Retired database execution code is reference-only under
 `archive/legacy_database/` and is excluded from all builds.
-
-FEE parameter configuration and instance generation are maintained on the
-`feature/fee-parameters` branch. `master` contains only generic graph tooling.

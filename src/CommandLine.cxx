@@ -3,6 +3,7 @@
 #include "entity_rdf/ChangelogReader.hxx"
 #include "entity_rdf/ChangelogWriter.hxx"
 #include "entity_rdf/TurtleWriter.hxx"
+#include "entity_rdf/instances/FeeModule.hxx"
 #include <CLI/CLI.hpp>
 #include <array>
 #include <fstream>
@@ -19,8 +20,12 @@ struct CommandArguments {
   std::string change;
   /// Turtle input file used to author a new changeset.
   std::string input;
+  /// FEE instance configuration XML input.
+  std::string config;
   /// Identifier of a newly authored or generated changeset.
   std::string id;
+  /// Prefix used when creating instance-generation configuration.
+  std::string prefix;
   /// Absolute Turtle URI visible to the external Neo4j importer.
   std::string turtleUri;
 };
@@ -43,8 +48,12 @@ int CommandLine::run(int argc, const char *const *argv) const {
       app.add_subcommand("new-change", "Create a changeset from Turtle input");
   CLI::App *append =
       app.add_subcommand("append", "Append a validated changeset include");
-  for (CLI::App *command :
-       std::array<CLI::App *, 5>{validate, compose, build, create, append})
+  CLI::App *generate = app.add_subcommand("generate-instances",
+                                          "Generate a FEE instance changeset");
+  CLI::App *configure = app.add_subcommand(
+      "create-instance-config", "Derive FEE configuration from core topology");
+  for (CLI::App *command : std::array<CLI::App *, 7>{
+           validate, compose, build, create, append, generate, configure})
     command->add_option("ROOT", arguments.root, "Root changelog XML path")
         ->required();
 
@@ -63,6 +72,20 @@ int CommandLine::run(int argc, const char *const *argv) const {
   create->add_option("ID", arguments.id, "Changeset identifier")->required();
   create->add_option("INPUT", arguments.input, "Turtle input file")->required();
   append->add_option("CHANGE", arguments.change, "Changeset XML to include")
+      ->required();
+  generate->add_option("CONFIG", arguments.config, "FEE configuration XML path")
+      ->required();
+  generate
+      ->add_option("OUTPUT_DIR", arguments.output,
+                   "New instance changeset directory")
+      ->required();
+  generate->add_option("ID", arguments.id, "Generated changeset identifier")
+      ->required();
+  configure
+      ->add_option("OUTPUT", arguments.output, "New FEE configuration XML file")
+      ->required();
+  configure
+      ->add_option("IRI_PREFIX", arguments.prefix, "Prefix for instance IRIs")
       ->required();
 
   try {
@@ -85,6 +108,12 @@ int CommandLine::run(int argc, const char *const *argv) const {
     ChangelogWriter{}.create(arguments.output, arguments.id, arguments.input);
   else if (*append)
     ChangelogWriter{}.append(arguments.root, arguments.change);
+  else if (*generate)
+    instances::FeeModule{}.generate(log.composed, arguments.config,
+                                    arguments.output, arguments.id);
+  else if (*configure)
+    instances::FeeModule{}.createConfig(log.composed, arguments.output,
+                                        arguments.prefix);
   return 0;
 }
 void CommandLine::writeNew(const std::filesystem::path &path,
