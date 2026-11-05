@@ -1,2 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<neo4jConnection endpoint="http://entities-db:7474/db/neo4j/tx/commit" username="neo4j" passwordEnv="NEO4J_PASSWORD"/>
