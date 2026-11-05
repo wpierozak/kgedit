@@ -1,0 +1,8 @@
+@prefix g: <urn:dcs:graph:> .
+@prefix p: <urn:dcs:property:> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+<urn:example:board> a g:Node; g:recordId "board"; g:label "Board"; p:name "Example board"; p:entity_identity "preserved-board-id" .
+<urn:example:parameter> a g:Node; g:recordId "parameter"; g:label "Parameter"; p:name "Power" .
+<urn:example:link-a> a g:Relationship; g:recordId "link-a"; g:source <urn:example:board>; g:target <urn:example:parameter>; g:relationshipType "has_parameter"; p:rank "1"^^xsd:long .
+<urn:example:link-b> a g:Relationship; g:recordId "link-b"; g:source <urn:example:board>; g:target <urn:example:parameter>; g:relationshipType "has_parameter"; p:rank "2"^^xsd:long .
+<urn:example:loop> a g:Relationship; g:recordId "loop"; g:source <urn:example:board>; g:target <urn:example:board>; g:relationshipType "self" .
